@@ -2,11 +2,13 @@
   'use strict';
 
   const STORE_KEY = 'kartuli.v1';
-  const HEART_SVG =
-    '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+  const SCREENS = ['topics', 'dictionary', 'study'];
   const $ = (id) => document.getElementById(id);
 
+  const allWords = DECKS.flatMap((deck) => deck.words);
+
   const state = load();
+  let tab = 'topics'; // активная вкладка таб-бара: 'topics' | 'dictionary'
   let currentDeck = null;
   let queue = [];
 
@@ -20,9 +22,10 @@
     saved = saved || {};
     return {
       reverse: Boolean(saved.reverse),
-      tab: saved.tab === 'focus' ? 'focus' : 'all',
+      filter: saved.filter === 'favorites' ? 'favorites' : 'all',
       known: new Set(saved.known || []),
-      focus: new Set(saved.focus || []),
+      // focus — имя поля из прошлой версии
+      favorites: new Set(saved.favorites || saved.focus || []),
     };
   }
 
@@ -32,9 +35,9 @@
         STORE_KEY,
         JSON.stringify({
           reverse: state.reverse,
-          tab: state.tab,
+          filter: state.filter,
           known: [...state.known],
-          focus: [...state.focus],
+          favorites: [...state.favorites],
         })
       );
     } catch {
@@ -46,6 +49,14 @@
     return deck.words.filter(([ka]) => state.known.has(ka)).length;
   }
 
+  function wordsLabel(n) {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return 'слово';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'слова';
+    return 'слов';
+  }
+
   function shuffle(list) {
     const a = [...list];
     for (let i = a.length - 1; i > 0; i--) {
@@ -55,73 +66,6 @@
     return a;
   }
 
-  // ——— Экран выбора темы ———
-
-  function renderTopics() {
-    const query = $('search').value.trim().toLowerCase();
-    const focused = DECKS.filter((d) => state.focus.has(d.id));
-
-    $('tab-all').textContent = `Все — ${DECKS.length}`;
-    $('tab-focus').textContent = `В фокусе — ${focused.length}`;
-    $('tab-all').setAttribute('aria-pressed', String(state.tab === 'all'));
-    $('tab-focus').setAttribute('aria-pressed', String(state.tab === 'focus'));
-
-    const pool = state.tab === 'focus' ? focused : DECKS;
-    const decks = pool.filter((d) => d.title.toLowerCase().includes(query));
-
-    const list = $('topic-list');
-    list.textContent = '';
-    for (const deck of decks) list.append(topicRow(deck));
-    list.hidden = decks.length === 0;
-
-    const empty = $('topics-empty');
-    empty.hidden = decks.length > 0;
-    empty.textContent = pool.length
-      ? 'Ничего не найдено'
-      : 'В фокусе пока пусто. Нажмите на сердечко у темы, чтобы добавить её сюда.';
-  }
-
-  function topicRow(deck) {
-    const known = knownCount(deck);
-    const total = deck.words.length;
-    const inFocus = state.focus.has(deck.id);
-
-    const row = document.createElement('li');
-    row.className = 'topic';
-
-    const open = document.createElement('button');
-    open.type = 'button';
-    open.className = 'topic-open';
-    open.append(
-      el('span', 'topic-icon', deck.icon),
-      el('span', 'topic-text', el('span', 'topic-title', deck.title), el('span', 'topic-count', `${known} / ${total}`))
-    );
-    open.firstChild.setAttribute('aria-hidden', 'true');
-    open.addEventListener('click', () => openDeck(deck));
-
-    const heart = document.createElement('button');
-    heart.type = 'button';
-    heart.className = 'heart';
-    heart.innerHTML = HEART_SVG;
-    heart.setAttribute('aria-pressed', String(inFocus));
-    heart.setAttribute('aria-label', `${inFocus ? 'Убрать из фокуса' : 'Добавить в фокус'}: ${deck.title}`);
-    heart.addEventListener('click', () => {
-      if (inFocus) state.focus.delete(deck.id);
-      else state.focus.add(deck.id);
-      save();
-      renderTopics();
-    });
-
-    const fill = el('div', 'meter-fill');
-    fill.style.height = `${(known / total) * 100}%`;
-    const meter = el('div', 'meter', fill);
-    meter.setAttribute('role', 'img');
-    meter.setAttribute('aria-label', `Выучено ${known} из ${total}`);
-
-    row.append(open, heart, meter);
-    return row;
-  }
-
   function el(tag, className, ...children) {
     const node = document.createElement(tag);
     node.className = className;
@@ -129,13 +73,87 @@
     return node;
   }
 
-  function setTab(tab) {
-    state.tab = tab;
+  // ——— Вкладка «Изучение» ———
+
+  function renderTopics() {
+    $('tab-all').setAttribute('aria-pressed', String(state.filter === 'all'));
+    $('tab-favorites').setAttribute('aria-pressed', String(state.filter === 'favorites'));
+
+    const decks = state.filter === 'favorites' ? DECKS.filter((d) => state.favorites.has(d.id)) : DECKS;
+
+    const list = $('topic-list');
+    list.textContent = '';
+    for (const deck of decks) list.append(topicCard(deck));
+    list.hidden = decks.length === 0;
+    $('topics-empty').hidden = decks.length > 0;
+  }
+
+  function topicCard(deck) {
+    const known = knownCount(deck);
+    const total = deck.words.length;
+    const count = `${total} ${wordsLabel(total)}`;
+
+    const go = el('button', 'topic-go', 'УЧИТЬ');
+    go.type = 'button';
+
+    const image = document.createElement('img');
+    image.className = 'topic-image';
+    image.src = deck.image;
+    image.alt = '';
+
+    const card = el(
+      'li',
+      'topic',
+      el('div', 'topic-body', el('h2', 'topic-title', deck.title), el('span', 'badge', known ? `${known} / ${count}` : count), go),
+      image
+    );
+    card.addEventListener('click', () => openDeck(deck));
+    return card;
+  }
+
+  function setFilter(filter) {
+    state.filter = filter;
     save();
     renderTopics();
   }
 
+  // ——— Вкладка «Словарь» ———
+
+  function renderDictionary() {
+    const query = $('search').value.trim().toLowerCase();
+    const words = query ? allWords.filter((word) => word.some((part) => part.toLowerCase().includes(query))) : allWords;
+
+    const list = $('word-list');
+    list.textContent = '';
+    for (const [ka, tr, ru] of words) {
+      const kaNode = el('span', 'word-ka', ka);
+      kaNode.lang = 'ka';
+      list.append(el('li', 'word', el('div', 'word-main', kaNode, el('span', 'word-tr', tr)), el('span', 'word-ru', ru)));
+    }
+    list.hidden = words.length === 0;
+    $('words-empty').hidden = words.length > 0;
+  }
+
   // ——— Навигация между экранами ———
+
+  function show(screen) {
+    for (const id of SCREENS) $(id).hidden = id !== screen;
+    const topLevel = screen !== 'study';
+    $('tabbar').hidden = !topLevel;
+    $('fade').hidden = !topLevel;
+    for (const id of ['topics', 'dictionary']) {
+      if (id === screen) $(`nav-${id}`).setAttribute('aria-current', 'page');
+      else $(`nav-${id}`).removeAttribute('aria-current');
+    }
+  }
+
+  function showTab(next) {
+    tab = next;
+    currentDeck = null;
+    show(tab);
+    if (tab === 'topics') renderTopics();
+    else renderDictionary();
+  }
 
   // Карточки открываются отдельной записью в истории, чтобы работал системный жест «назад»
   function openDeck(deck) {
@@ -143,20 +161,13 @@
     showStudy(deck);
   }
 
-  function showTopics() {
-    currentDeck = null;
-    $('study').hidden = true;
-    $('topics').hidden = false;
-    renderTopics();
-  }
-
   function showStudy(deck) {
     currentDeck = deck;
     $('deck-title').textContent = deck.title;
-    $('topics').hidden = true;
-    $('study').hidden = false;
+    show('study');
     buildQueue();
     renderDirection();
+    renderFavorite();
     renderCard();
   }
 
@@ -164,7 +175,7 @@
     const deckId = history.state && history.state.deck;
     const deck = DECKS.find((d) => d.id === deckId);
     if (deck) showStudy(deck);
-    else showTopics();
+    else showTab(tab);
   }
 
   // ——— Экран карточек ———
@@ -177,6 +188,12 @@
     const label = state.reverse ? 'русский → грузинский' : 'грузинский → русский';
     $('direction').setAttribute('aria-label', `Сменить направление. Сейчас: ${label}`);
     $('direction').title = label;
+  }
+
+  function renderFavorite() {
+    const isFavorite = state.favorites.has(currentDeck.id);
+    $('favorite').setAttribute('aria-pressed', String(isFavorite));
+    $('favorite').setAttribute('aria-label', isFavorite ? 'Убрать из избранного' : 'Добавить в избранное');
   }
 
   function renderCard() {
@@ -205,7 +222,7 @@
     setText($('front-main'), question, questionLang);
     setText($('back-top'), question, questionLang);
     setText($('back-main'), answer, answerLang);
-    $('back-sub').textContent = `[${tr}]`;
+    $('back-sub').textContent = tr;
 
     void card.offsetWidth;
     card.classList.remove('no-anim');
@@ -242,9 +259,11 @@
 
   // ——— События ———
 
-  $('search').addEventListener('input', renderTopics);
-  $('tab-all').addEventListener('click', () => setTab('all'));
-  $('tab-focus').addEventListener('click', () => setTab('focus'));
+  $('tab-all').addEventListener('click', () => setFilter('all'));
+  $('tab-favorites').addEventListener('click', () => setFilter('favorites'));
+  $('nav-topics').addEventListener('click', () => showTab('topics'));
+  $('nav-dictionary').addEventListener('click', () => showTab('dictionary'));
+  $('search').addEventListener('input', renderDictionary);
 
   $('back').addEventListener('click', () => history.back());
   $('to-topics').addEventListener('click', () => history.back());
@@ -259,6 +278,12 @@
     save();
     renderDirection();
     renderCard();
+  });
+  $('favorite').addEventListener('click', () => {
+    if (state.favorites.has(currentDeck.id)) state.favorites.delete(currentDeck.id);
+    else state.favorites.add(currentDeck.id);
+    save();
+    renderFavorite();
   });
 
   document.addEventListener('keydown', (e) => {

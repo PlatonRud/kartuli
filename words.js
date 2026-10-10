@@ -1,10 +1,10 @@
 // Колоды слов. Формат слова: [грузинский, транскрипция, перевод].
-// icon — эмодзи темы на экране выбора.
+// image — картинка темы на экране выбора.
 // Чтобы добавить слово — допишите строку в нужную колоду; новая колода — новый объект в массиве.
 const DECKS = [
   {
     id: 'greetings',
-    icon: '👋',
+    image: 'img/greetings.webp',
     title: 'Приветствия',
     words: [
       ['გამარჯობა', 'гамарджоба', 'привет, здравствуйте'],
@@ -26,7 +26,7 @@ const DECKS = [
   },
   {
     id: 'numbers',
-    icon: '🔢',
+    image: 'img/numbers.webp',
     title: 'Числа',
     words: [
       ['ერთი', 'эрти', 'один'],
@@ -43,7 +43,7 @@ const DECKS = [
   },
   {
     id: 'food',
-    icon: '🍷',
+    image: 'img/food.webp',
     title: 'Еда',
     words: [
       ['პური', 'пури', 'хлеб'],
@@ -64,7 +64,7 @@ const DECKS = [
   },
   {
     id: 'people',
-    icon: '👪',
+    image: 'img/people.webp',
     title: 'Люди',
     words: [
       ['დედა', 'деда', 'мама'],
@@ -81,7 +81,7 @@ const DECKS = [
   },
   {
     id: 'basics',
-    icon: '💬',
+    image: 'img/basics.webp',
     title: 'Базовые слова',
     words: [
       ['სახლი', 'сахли', 'дом'],

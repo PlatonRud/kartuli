@@ -1,5 +1,5 @@
 // Сначала сеть, при её отсутствии — кэш: онлайн всегда свежая версия, офлайн — последняя загруженная.
-const CACHE = 'kartuli-v1';
+const CACHE = 'kartuli-v2';
 const ASSETS = [
   './',
   'index.html',
@@ -7,6 +7,16 @@ const ASSETS = [
   'words.js',
   'app.js',
   'manifest.webmanifest',
+  'fonts/golos-text-cyrillic.woff2',
+  'fonts/golos-text-latin.woff2',
+  'img/greetings.webp',
+  'img/numbers.webp',
+  'img/food.webp',
+  'img/people.webp',
+  'img/basics.webp',
+  'img/tab-learn.svg',
+  'img/tab-search.svg',
+  'img/chevron-left.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
