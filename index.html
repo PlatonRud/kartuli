@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Картули — грузинские слова</title>
+
+  <meta name="theme-color" content="#f6f1ea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16130f" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <!-- iOS: запуск с домашнего экрана без интерфейса Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Картули">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <h1 lang="ka">ქართული</h1>
+      <button id="direction" class="pill" type="button" aria-label="Сменить направление перевода"></button>
+    </header>
+
+    <nav id="decks" class="decks" aria-label="Колоды"></nav>
+
+    <div class="progress">
+      <div class="progress-track"><div id="bar" class="progress-bar"></div></div>
+      <span id="count" class="progress-count"></span>
+    </div>
+
+    <section class="stage">
+      <div id="card" class="card" role="button" tabindex="0" aria-label="Карточка, нажмите, чтобы перевернуть">
+        <div class="card-inner">
+          <div class="face front">
+            <span id="front-main" class="main"></span>
+            <span class="hint">нажмите, чтобы перевернуть</span>
+          </div>
+          <div class="face back">
+            <span id="back-top" class="top-word"></span>
+            <span id="back-main" class="main"></span>
+            <span id="back-sub" class="sub"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="done" class="done" hidden>
+        <p class="done-title">Колода пройдена</p>
+        <p class="done-text">Все слова здесь отмечены как выученные.</p>
+        <button id="restart" class="btn know" type="button">Повторить заново</button>
+      </div>
+    </section>
+
+    <footer id="actions" class="actions">
+      <button id="again" class="btn again" type="button">Ещё учу</button>
+      <button id="know" class="btn know" type="button">Знаю</button>
+    </footer>
+  </main>
+
+  <script src="words.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
