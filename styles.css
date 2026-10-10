@@ -8,6 +8,8 @@
   --accent: #9b2335;
   --accent-ink: #fff7ec;
   --good: #2f7d5b;
+  --seg-track: #e9e0d4;
+  --seg-active: #fffdf9;
   --shadow: 0 10px 30px rgba(60, 40, 20, 0.12);
 }
 
@@ -21,6 +23,8 @@
     --accent: #c9485b;
     --accent-ink: #fff7ec;
     --good: #3f9a72;
+    --seg-track: #221d18;
+    --seg-active: #4a4037;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   }
 }
@@ -48,6 +52,8 @@ button {
   font: inherit;
   color: inherit;
   border: 0;
+  background: none;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -57,72 +63,229 @@ button {
   max-width: 480px;
   margin: 0 auto;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
   padding:
     calc(env(safe-area-inset-top) + 14px)
     16px
     calc(env(safe-area-inset-bottom) + 16px);
 }
 
-/* Шапка */
-.top {
+.screen {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Шапка */
+.bar {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+  min-height: 44px;
+  flex-shrink: 0;
 }
 
-.top h1 {
+.bar h1 {
+  grid-column: 2;
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.1875rem;
   font-weight: 700;
-  color: var(--accent);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.pill {
-  padding: 8px 14px;
-  border-radius: 999px;
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
   background: var(--surface);
   border: 1px solid var(--line);
-  font-size: 0.875rem;
-  font-weight: 600;
-  white-space: nowrap;
 }
+.icon-btn:active { transform: scale(0.94); }
 
-/* Колоды */
-.decks {
+/* Поиск */
+.search {
   display: flex;
-  gap: 8px;
-  margin: 0 -16px;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
   padding: 0 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  flex-shrink: 0;
-}
-.decks::-webkit-scrollbar { display: none; }
-
-.chip {
-  flex-shrink: 0;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: transparent;
+  border-radius: 18px;
+  background: var(--surface);
   border: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.9375rem;
+  flex-shrink: 0;
 }
-.chip[aria-pressed="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 600;
+.search:focus-within { border-color: var(--accent); }
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--ink);
+  /* не меньше 16px, иначе iOS приближает страницу при фокусе */
+  font: inherit;
+  font-size: 1.0625rem;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.search input::placeholder { color: var(--muted); }
+
+/* Переключатель «Все / В фокусе» */
+.segments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--seg-track);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
 }
 
-/* Прогресс */
+.segment {
+  height: 34px;
+  border-radius: 11px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.segment[aria-pressed="true"] {
+  background: var(--seg-active);
+  color: var(--ink);
+}
+
+/* Список тем */
+.topic-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -16px;
+  padding: 0 16px 8px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.topic-list::-webkit-scrollbar { display: none; }
+
+.topic {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 76px;
+  padding-right: 14px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.topic-open {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 4px 12px 14px;
+  border-radius: 20px 0 0 20px;
+  text-align: left;
+}
+.topic-open:active { opacity: 0.6; }
+
+.topic-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--bg);
+  font-size: 1.625rem;
+  flex-shrink: 0;
+}
+
+.topic-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.topic-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topic-count {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.heart {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.heart svg {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  transition: transform 0.15s ease;
+}
+.heart[aria-pressed="true"] svg {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.heart:active svg { transform: scale(0.85); }
+
+/* Вертикальный индикатор прогресса темы */
+.meter {
+  width: 8px;
+  height: 44px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.meter-fill {
+  width: 100%;
+  background: var(--good);
+}
+
+.empty {
+  flex: 1;
+  margin: 0;
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Прогресс внутри темы */
 .progress {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 .progress-track {
   flex: 1;
@@ -225,14 +388,14 @@ button {
   color: var(--muted);
 }
 
-/* Экран «колода пройдена» */
+/* Экран «тема пройдена» */
 .done {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   padding: 24px;
   text-align: center;
 }
@@ -242,10 +405,13 @@ button {
   font-weight: 700;
 }
 .done-text {
-  margin: 0 0 16px;
+  margin: 0 0 14px;
   color: var(--muted);
 }
-.done .btn { padding: 0 28px; }
+.done .btn {
+  width: 100%;
+  max-width: 260px;
+}
 
 /* Кнопки */
 .actions {

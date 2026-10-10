@@ -2,13 +2,12 @@
   'use strict';
 
   const STORE_KEY = 'kartuli.v1';
+  const HEART_SVG =
+    '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
   const $ = (id) => document.getElementById(id);
 
-  const allWords = DECKS.flatMap((deck) =>
-    deck.words.map(([ka, tr, ru]) => ({ ka, tr, ru, deck: deck.id }))
-  );
-
   const state = load();
+  let currentDeck = null;
   let queue = [];
 
   function load() {
@@ -18,11 +17,12 @@
     } catch {
       // хранилище недоступно (приватный режим) — работаем без сохранения
     }
-    const deckExists = saved && DECKS.some((d) => d.id === saved.deck);
+    saved = saved || {};
     return {
-      deck: deckExists ? saved.deck : 'all',
-      reverse: Boolean(saved && saved.reverse),
-      known: new Set((saved && saved.known) || []),
+      reverse: Boolean(saved.reverse),
+      tab: saved.tab === 'focus' ? 'focus' : 'all',
+      known: new Set(saved.known || []),
+      focus: new Set(saved.focus || []),
     };
   }
 
@@ -30,15 +30,20 @@
     try {
       localStorage.setItem(
         STORE_KEY,
-        JSON.stringify({ deck: state.deck, reverse: state.reverse, known: [...state.known] })
+        JSON.stringify({
+          reverse: state.reverse,
+          tab: state.tab,
+          known: [...state.known],
+          focus: [...state.focus],
+        })
       );
     } catch {
       // см. load()
     }
   }
 
-  function deckWords() {
-    return state.deck === 'all' ? allWords : allWords.filter((w) => w.deck === state.deck);
+  function knownCount(deck) {
+    return deck.words.filter(([ka]) => state.known.has(ka)).length;
   }
 
   function shuffle(list) {
@@ -50,39 +55,135 @@
     return a;
   }
 
-  function buildQueue() {
-    queue = shuffle(deckWords().filter((w) => !state.known.has(w.ka)));
+  // ——— Экран выбора темы ———
+
+  function renderTopics() {
+    const query = $('search').value.trim().toLowerCase();
+    const focused = DECKS.filter((d) => state.focus.has(d.id));
+
+    $('tab-all').textContent = `Все — ${DECKS.length}`;
+    $('tab-focus').textContent = `В фокусе — ${focused.length}`;
+    $('tab-all').setAttribute('aria-pressed', String(state.tab === 'all'));
+    $('tab-focus').setAttribute('aria-pressed', String(state.tab === 'focus'));
+
+    const pool = state.tab === 'focus' ? focused : DECKS;
+    const decks = pool.filter((d) => d.title.toLowerCase().includes(query));
+
+    const list = $('topic-list');
+    list.textContent = '';
+    for (const deck of decks) list.append(topicRow(deck));
+    list.hidden = decks.length === 0;
+
+    const empty = $('topics-empty');
+    empty.hidden = decks.length > 0;
+    empty.textContent = pool.length
+      ? 'Ничего не найдено'
+      : 'В фокусе пока пусто. Нажмите на сердечко у темы, чтобы добавить её сюда.';
   }
 
-  function renderDecks() {
-    const nav = $('decks');
-    nav.textContent = '';
-    for (const deck of [{ id: 'all', title: 'Все' }, ...DECKS]) {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip';
-      chip.textContent = deck.title;
-      chip.setAttribute('aria-pressed', String(deck.id === state.deck));
-      chip.addEventListener('click', () => {
-        state.deck = deck.id;
-        save();
-        buildQueue();
-        renderDecks();
-        renderCard();
-      });
-      nav.append(chip);
-    }
+  function topicRow(deck) {
+    const known = knownCount(deck);
+    const total = deck.words.length;
+    const inFocus = state.focus.has(deck.id);
+
+    const row = document.createElement('li');
+    row.className = 'topic';
+
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'topic-open';
+    open.append(
+      el('span', 'topic-icon', deck.icon),
+      el('span', 'topic-text', el('span', 'topic-title', deck.title), el('span', 'topic-count', `${known} / ${total}`))
+    );
+    open.firstChild.setAttribute('aria-hidden', 'true');
+    open.addEventListener('click', () => openDeck(deck));
+
+    const heart = document.createElement('button');
+    heart.type = 'button';
+    heart.className = 'heart';
+    heart.innerHTML = HEART_SVG;
+    heart.setAttribute('aria-pressed', String(inFocus));
+    heart.setAttribute('aria-label', `${inFocus ? 'Убрать из фокуса' : 'Добавить в фокус'}: ${deck.title}`);
+    heart.addEventListener('click', () => {
+      if (inFocus) state.focus.delete(deck.id);
+      else state.focus.add(deck.id);
+      save();
+      renderTopics();
+    });
+
+    const fill = el('div', 'meter-fill');
+    fill.style.height = `${(known / total) * 100}%`;
+    const meter = el('div', 'meter', fill);
+    meter.setAttribute('role', 'img');
+    meter.setAttribute('aria-label', `Выучено ${known} из ${total}`);
+
+    row.append(open, heart, meter);
+    return row;
+  }
+
+  function el(tag, className, ...children) {
+    const node = document.createElement(tag);
+    node.className = className;
+    node.append(...children);
+    return node;
+  }
+
+  function setTab(tab) {
+    state.tab = tab;
+    save();
+    renderTopics();
+  }
+
+  // ——— Навигация между экранами ———
+
+  // Карточки открываются отдельной записью в истории, чтобы работал системный жест «назад»
+  function openDeck(deck) {
+    history.pushState({ deck: deck.id }, '');
+    showStudy(deck);
+  }
+
+  function showTopics() {
+    currentDeck = null;
+    $('study').hidden = true;
+    $('topics').hidden = false;
+    renderTopics();
+  }
+
+  function showStudy(deck) {
+    currentDeck = deck;
+    $('deck-title').textContent = deck.title;
+    $('topics').hidden = true;
+    $('study').hidden = false;
+    buildQueue();
+    renderDirection();
+    renderCard();
+  }
+
+  function route() {
+    const deckId = history.state && history.state.deck;
+    const deck = DECKS.find((d) => d.id === deckId);
+    if (deck) showStudy(deck);
+    else showTopics();
+  }
+
+  // ——— Экран карточек ———
+
+  function buildQueue() {
+    queue = shuffle(currentDeck.words.filter(([ka]) => !state.known.has(ka)));
   }
 
   function renderDirection() {
-    $('direction').textContent = state.reverse ? 'рус → ქართ' : 'ქართ → рус';
+    const label = state.reverse ? 'русский → грузинский' : 'грузинский → русский';
+    $('direction').setAttribute('aria-label', `Сменить направление. Сейчас: ${label}`);
+    $('direction').title = label;
   }
 
   function renderCard() {
-    const words = deckWords();
-    const knownCount = words.filter((w) => state.known.has(w.ka)).length;
-    $('bar').style.width = `${(knownCount / words.length) * 100}%`;
-    $('count').textContent = `${knownCount} / ${words.length}`;
+    const total = currentDeck.words.length;
+    const known = knownCount(currentDeck);
+    $('bar').style.width = `${(known / total) * 100}%`;
+    $('count').textContent = `${known} / ${total}`;
 
     const word = queue[0];
     const card = $('card');
@@ -95,24 +196,25 @@
     card.classList.add('no-anim');
     card.classList.remove('flipped', 'enter');
 
-    const question = state.reverse ? word.ru : word.ka;
-    const answer = state.reverse ? word.ka : word.ru;
+    const [ka, tr, ru] = word;
+    const question = state.reverse ? ru : ka;
+    const answer = state.reverse ? ka : ru;
     const questionLang = state.reverse ? 'ru' : 'ka';
     const answerLang = state.reverse ? 'ka' : 'ru';
 
     setText($('front-main'), question, questionLang);
     setText($('back-top'), question, questionLang);
     setText($('back-main'), answer, answerLang);
-    $('back-sub').textContent = `[${word.tr}]`;
+    $('back-sub').textContent = `[${tr}]`;
 
     void card.offsetWidth;
     card.classList.remove('no-anim');
     card.classList.add('enter');
   }
 
-  function setText(el, text, lang) {
-    el.textContent = text;
-    el.lang = lang;
+  function setText(node, text, lang) {
+    node.textContent = text;
+    node.lang = lang;
   }
 
   function flip() {
@@ -123,7 +225,7 @@
     const word = queue.shift();
     if (!word) return;
     if (isKnown) {
-      state.known.add(word.ka);
+      state.known.add(word[0]);
       save();
     } else {
       queue.push(word);
@@ -132,11 +234,21 @@
   }
 
   function restartDeck() {
-    for (const w of deckWords()) state.known.delete(w.ka);
+    for (const [ka] of currentDeck.words) state.known.delete(ka);
     save();
     buildQueue();
     renderCard();
   }
+
+  // ——— События ———
+
+  $('search').addEventListener('input', renderTopics);
+  $('tab-all').addEventListener('click', () => setTab('all'));
+  $('tab-focus').addEventListener('click', () => setTab('focus'));
+
+  $('back').addEventListener('click', () => history.back());
+  $('to-topics').addEventListener('click', () => history.back());
+  window.addEventListener('popstate', route);
 
   $('card').addEventListener('click', flip);
   $('know').addEventListener('click', () => answer(true));
@@ -150,7 +262,7 @@
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.target.closest('button')) return;
+    if (!currentDeck || e.target.closest('button, input')) return;
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
       flip();
@@ -165,8 +277,5 @@
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
   }
 
-  buildQueue();
-  renderDecks();
-  renderDirection();
-  renderCard();
+  route();
 })();

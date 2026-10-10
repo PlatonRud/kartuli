@@ -21,44 +21,71 @@
 </head>
 <body>
   <main class="app">
-    <header class="top">
-      <h1 lang="ka">ქართული</h1>
-      <button id="direction" class="pill" type="button" aria-label="Сменить направление перевода"></button>
-    </header>
+    <!-- Экран выбора темы -->
+    <section id="topics" class="screen">
+      <header class="bar">
+        <h1>Выбор темы</h1>
+      </header>
 
-    <nav id="decks" class="decks" aria-label="Колоды"></nav>
+      <label class="search">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="search" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" placeholder="Поиск темы" aria-label="Поиск темы">
+      </label>
 
-    <div class="progress">
-      <div class="progress-track"><div id="bar" class="progress-bar"></div></div>
-      <span id="count" class="progress-count"></span>
-    </div>
+      <div class="segments">
+        <button id="tab-all" class="segment" type="button"></button>
+        <button id="tab-focus" class="segment" type="button"></button>
+      </div>
 
-    <section class="stage">
-      <div id="card" class="card" role="button" tabindex="0" aria-label="Карточка, нажмите, чтобы перевернуть">
-        <div class="card-inner">
-          <div class="face front">
-            <span id="front-main" class="main"></span>
-            <span class="hint">нажмите, чтобы перевернуть</span>
+      <ul id="topic-list" class="topic-list"></ul>
+      <p id="topics-empty" class="empty" hidden></p>
+    </section>
+
+    <!-- Экран карточек -->
+    <section id="study" class="screen" hidden>
+      <header class="bar">
+        <button id="back" class="icon-btn" type="button" aria-label="Назад к темам">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h1 id="deck-title"></h1>
+        <button id="direction" class="icon-btn" type="button">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7"/></svg>
+        </button>
+      </header>
+
+      <div class="progress">
+        <div class="progress-track"><div id="bar" class="progress-bar"></div></div>
+        <span id="count" class="progress-count"></span>
+      </div>
+
+      <div class="stage">
+        <div id="card" class="card" role="button" tabindex="0" aria-label="Карточка, нажмите, чтобы перевернуть">
+          <div class="card-inner">
+            <div class="face front">
+              <span id="front-main" class="main"></span>
+              <span class="hint">нажмите, чтобы перевернуть</span>
+            </div>
+            <div class="face back">
+              <span id="back-top" class="top-word"></span>
+              <span id="back-main" class="main"></span>
+              <span id="back-sub" class="sub"></span>
+            </div>
           </div>
-          <div class="face back">
-            <span id="back-top" class="top-word"></span>
-            <span id="back-main" class="main"></span>
-            <span id="back-sub" class="sub"></span>
-          </div>
+        </div>
+
+        <div id="done" class="done" hidden>
+          <p class="done-title">Тема пройдена</p>
+          <p class="done-text">Все слова здесь отмечены как выученные.</p>
+          <button id="restart" class="btn know" type="button">Повторить заново</button>
+          <button id="to-topics" class="btn again" type="button">К темам</button>
         </div>
       </div>
 
-      <div id="done" class="done" hidden>
-        <p class="done-title">Колода пройдена</p>
-        <p class="done-text">Все слова здесь отмечены как выученные.</p>
-        <button id="restart" class="btn know" type="button">Повторить заново</button>
-      </div>
+      <footer id="actions" class="actions">
+        <button id="again" class="btn again" type="button">Ещё учу</button>
+        <button id="know" class="btn know" type="button">Знаю</button>
+      </footer>
     </section>
-
-    <footer id="actions" class="actions">
-      <button id="again" class="btn again" type="button">Ещё учу</button>
-      <button id="know" class="btn know" type="button">Знаю</button>
-    </footer>
   </main>
 
   <script src="words.js"></script>
