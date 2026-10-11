@@ -72,6 +72,20 @@ button {
   overflow: hidden;
 }
 
+/* В приложении с экрана «Домой» панелей браузера нет, поэтому берём бо́льшую из двух высот */
+@media (display-mode: standalone) {
+  .app { height: max(100vh, 100dvh); }
+}
+
+/* iOS считает высоту окна без области строки состояния — см. fitStandaloneHeight() в app.js */
+.ios-short-viewport .app {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--app-height);
+}
+
 .screen {
   flex: 1;
   min-width: 0;
@@ -317,7 +331,7 @@ button {
 .tabbar {
   position: absolute;
   left: 50%;
-  bottom: max(28px, env(safe-area-inset-bottom));
+  bottom: 28px;
   transform: translateX(-50%);
   display: flex;
   width: 178px;
