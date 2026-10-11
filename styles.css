@@ -77,14 +77,9 @@ button {
   .app { height: max(100vh, 100dvh); }
 }
 
-/* iOS считает высоту окна без области строки состояния — см. fitStandaloneHeight() в app.js */
-.ios-short-viewport .app {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: var(--app-height);
-}
+/* iOS считает высоту окна без области строки состояния — см. fitStandaloneHeight() в app.js.
+   Блок остаётся в обычном потоке: закреплённые (fixed) элементы iOS обрезает по своей укороченной высоте. */
+.ios-short-viewport .app { height: var(--app-height); }
 
 .screen {
   flex: 1;
