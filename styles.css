@@ -72,15 +72,6 @@ button {
   overflow: hidden;
 }
 
-/* В приложении с экрана «Домой» панелей браузера нет, поэтому берём бо́льшую из двух высот */
-@media (display-mode: standalone) {
-  .app { height: max(100vh, 100dvh); }
-}
-
-/* iOS считает высоту окна без области строки состояния — см. fitStandaloneHeight() в app.js.
-   Блок остаётся в обычном потоке: закреплённые (fixed) элементы iOS обрезает по своей укороченной высоте. */
-.ios-short-viewport .app { height: var(--app-height); }
-
 .screen {
   flex: 1;
   min-width: 0;
